@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audímetro - Medidor del Umbral de Audición</title>
+    <meta name="description" content="Una herramienta interactiva para medir los límites inferior y superior del espectro audible humano de forma científica y visual.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="pulse-dot"></span>
+                <h1>Audímetro</h1>
+            </div>
+            <p class="subtitle">Medidor del Umbral de Audición Humana</p>
+        </header>
+
+        <main class="app-main">
+            <!-- SECTION 1: CONFIGURATION -->
+            <section id="setup-panel" class="card setup-card">
+                <div class="card-header">
+                    <h2>Configuración del Test</h2>
+                    <p>Ajusta los parámetros antes de iniciar la prueba de audición.</p>
+                </div>
+                
+                <div class="warning-banner">
+                    <span class="warning-icon">⚠️</span>
+                    <div class="warning-text">
+                        <strong>¡ADVERTENCIA DE SEGURIDAD!</strong>
+                        Use auriculares. Comience siempre con volumen bajo para proteger sus oídos. Si siente molestia, detenga el test inmediatamente.
+                    </div>
+                </div>
+
+                <form id="setup-form" onsubmit="event.preventDefault();">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="input-min-freq">Frecuencia Inicial (Hz)</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="input-min-freq" value="20" min="10" max="1000" step="1" required>
+                                <span class="unit">Hz</span>
+                            </div>
+                            <small class="form-tip">Límite inferior teórico humano: 20 Hz</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="input-max-freq">Frecuencia Máxima (Hz)</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="input-max-freq" value="20000" min="2000" max="22000" step="100" required>
+                                <span class="unit">Hz</span>
+                            </div>
+                            <small class="form-tip">Límite superior teórico humano: 20,000 Hz</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="input-duration">Duración del Barrido</label>
+                            <div class="input-with-unit">
+                                <input type="number" id="input-duration" value="30" min="10" max="120" step="1" required>
+                                <span class="unit">seg</span>
+                            </div>
+                            <small class="form-tip">Tiempo para subir del mínimo al máximo</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="input-volume">Volumen Principal</label>
+                            <div class="volume-slider-container">
+                                <input type="range" id="input-volume" min="0" max="100" value="10">
+                                <span id="volume-val" class="volume-val">10%</span>
+                            </div>
+                            <button type="button" id="btn-test-tone" class="btn btn-secondary">Probar Tono Corto</button>
+                        </div>
+                    </div>
+
+                    <div class="action-bar">
+                        <button type="button" id="btn-start-test" class="btn btn-primary btn-large">Comenzar Test de Audición</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECTION 2: TEST SCREEN -->
+            <section id="test-panel" class="card test-card hidden">
+                <div class="test-header">
+                    <span id="phase-badge" class="badge badge-phase-1">Fase 1: Límite Inferior</span>
+                    <h2 id="phase-title">Buscando el inicio del sonido...</h2>
+                    <p id="phase-instruction">El sonido está subiendo gradualmente desde los tonos más graves. Pulsa el botón en el instante en que comiences a oír el zumbido.</p>
+                </div>
+
+                <!-- Live Frequency Display -->
+                <div class="frequency-counter-container">
+                    <div id="freq-display" class="frequency-display">20.0 <span class="hz-label">Hz</span></div>
+                    <div class="progress-bar-track">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Canvas Visualizer -->
+                <div class="visualizer-container">
+                    <canvas id="wave-canvas"></canvas>
+                </div>
+
+                <!-- Large Interactive Testing Button -->
+                <div class="main-trigger-area">
+                    <button type="button" id="btn-trigger-action" class="btn btn-trigger pulse-button">
+                        <span class="btn-subtext">Pulsa aquí cuando</span>
+                        <span id="btn-trigger-text" class="btn-maintext">EMPIECE A OÍR</span>
+                    </button>
+                </div>
+
+                <!-- Test Controls -->
+                <div class="test-controls-row">
+                    <button type="button" id="btn-abort-test" class="btn btn-danger">Cancelar Test</button>
+                    <div class="volume-micro-control">
+                        <label for="micro-volume">Volumen:</label>
+                        <input type="range" id="micro-volume" min="0" max="100" value="10">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: RESULTS PANEL -->
+            <section id="results-panel" class="card results-card hidden">
+                <div class="card-header text-center">
+                    <div class="success-icon-badge">✓</div>
+                    <h2>Resultados de tu Audición</h2>
+                    <p>Aquí tienes el rango audible registrado durante tu prueba.</p>
+                </div>
+
+                <div class="results-grid">
+                    <div class="result-tile lower-limit">
+                        <h3>Límite Audible Inferior</h3>
+                        <div class="result-value"><span id="res-lower-val">--</span> <span class="hz">Hz</span></div>
+                        <p class="result-evaluation" id="res-lower-eval">Registrado correctamente</p>
+                    </div>
+
+                    <div class="result-tile upper-limit">
+                        <h3>Límite Audible Superior</h3>
+                        <div class="result-value"><span id="res-upper-val">--</span> <span class="hz">Hz</span></div>
+                        <p class="result-evaluation" id="res-upper-eval">Registrado correctamente</p>
+                    </div>
+                </div>
+
+                <!-- Interactive Comparison Chart -->
+                <div class="comparison-section">
+                    <h3>Tu Rango vs. Rango Humano Estándar</h3>
+                    <p class="comparison-desc">El espectro de audición humana típico se sitúa entre los 20 Hz y los 20,000 Hz.</p>
+                    
+                    <div class="chart-container">
+                        <div class="chart-labels">
+                            <span>20 Hz (Graves)</span>
+                            <span>2,000 Hz</span>
+                            <span>10,000 Hz</span>
+                            <span>20,000 Hz (Agudos)</span>
+                        </div>
+                        <div class="spectrum-bar-container">
+                            <!-- Standard Human range background -->
+                            <div class="spectrum-track standard-track">
+                                <span class="track-label">Estándar Humano (20 Hz - 20 kHz)</span>
+                            </div>
+                            <!-- User's range colored overlap -->
+                            <div class="spectrum-track user-track" id="user-spectrum-bar">
+                                <span class="track-label" id="user-track-label">Tu Rango</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational Interpretation -->
+                <div class="interpretation-box">
+                    <h4>Análisis del Resultado</h4>
+                    <p id="results-analysis-text">
+                        Cargando análisis de audición...
+                    </p>
+                </div>
+
+                <div class="results-actions">
+                    <button type="button" id="btn-restart-all" class="btn btn-primary btn-large">Realizar Nuevo Test</button>
+                    <button type="button" id="btn-copy-results" class="btn btn-secondary">Copiar Resultados al Portapapeles</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>Diseñado para fines educativos. Esta prueba no sustituye a una audiometría médica profesional.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
